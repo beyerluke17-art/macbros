@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MacBros 🏋️</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    body { font-family: 'Press Start 2P', system-ui; }
+    .progress-ring { transition: stroke-dashoffset 0.5s ease; }
+    .macro-bar { transition: width 0.6s ease; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen pb-20">
+  <div class="max-w-2xl mx-auto">
+
+    <!-- HEADER -->
+    <header class="bg-black border-b border-orange-500 p-4 flex items-center justify-between sticky top-0 z-50">
+      <div class="flex items-center gap-3">
+        <div class="text-4xl">🏋️</div>
+        <div>
+          <h1 class="text-3xl font-bold tracking-wider text-orange-400">MACBROS</h1>
+          <p class="text-xs text-zinc-400 -mt-1">LIFT • EAT • REPEAT</p>
+        </div>
+      </div>
+      <div onclick="showPage('settings')" class="cursor-pointer text-orange-400 hover:text-orange-300">⚙️</div>
+    </header>
+
+    <!-- NAV -->
+    <nav class="bg-zinc-900 border-b border-zinc-800 flex text-xs font-bold">
+      <button onclick="showPage('dashboard')" id="nav-dash" class="flex-1 py-4 border-b-4 border-orange-500 text-orange-400">DASH</button>
+      <button onclick="showPage('log')" id="nav-log" class="flex-1 py-4">LOG FOOD</button>
+      <button onclick="showPage('history')" id="nav-history" class="flex-1 py-4">HISTORY</button>
+    </nav>
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page p-4">
+      <div class="text-center mb-8">
+        <div id="daily-cals" class="text-6xl font-bold text-white">0 / 3000</div>
+        <div class="text-xs text-zinc-500">CALORIES</div>
+      </div>
+
+      <!-- Progress Rings -->
+      <div class="grid grid-cols-2 gap-6 mb-10">
+        <div class="text-center">
+          <svg id="protein-ring" class="w-32 h-32 mx-auto" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#27272a" stroke-width="14"></circle>
+            <circle id="protein-progress" cx="60" cy="60" r="52" fill="none" stroke="#f97316" stroke-width="14" stroke-dasharray="326.73" stroke-dashoffset="326.73" stroke-linecap="round" transform="rotate(-90 60 60)"></circle>
+          </svg>
+          <div class="mt-3">
+            <div class="text-orange-400 text-2xl font-bold" id="protein-g">0g</div>
+            <div class="text-xs text-zinc-400">PROTEIN <span id="protein-pct">0%</span></div>
+          </div>
+        </div>
+        <div class="text-center">
+          <svg id="carbs-ring" class="w-32 h-32 mx-auto" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#27272a" stroke-width="14"></circle>
+            <circle id="carbs-progress" cx="60" cy="60" r="52" fill="none" stroke="#3b82f6" stroke-width="14" stroke-dasharray="326.73" stroke-dashoffset="326.73" stroke-linecap="round" transform="rotate(-90 60 60)"></circle>
+          </svg>
+          <div class="mt-3">
+            <div class="text-blue-400 text-2xl font-bold" id="carbs-g">0g</div>
+            <div class="text-xs text-zinc-400">CARBS <span id="carbs-pct">0%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="text-center">
+          <svg id="fats-ring" class="w-32 h-32 mx-auto" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#27272a" stroke-width="14"></circle>
+            <circle id="fats-progress" cx="60" cy="60" r="52" fill="none" stroke="#eab308" stroke-width="14" stroke-dasharray="326.73" stroke-dashoffset="326.73" stroke-linecap="round" transform="rotate(-90 60 60)"></circle>
+          </svg>
+          <div class="mt-3">
+            <div class="text-yellow-400 text-2xl font-bold" id="fats-g">0g</div>
+            <div class="text-xs text-zinc-400">FATS <span id="fats-pct">0%</span></div>
+          </div>
+        </div>
+        <div class="text-center">
+          <div class="w-32 h-32 mx-auto bg-purple-900/30 rounded-full flex items-center justify-center border-8 border-purple-500 relative">
+            <div class="text-center">
+              <div id="sugar-g" class="text-3xl font-bold text-purple-400">0g</div>
+              <div class="text-xs text-purple-300">SUGAR</div>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-zinc-400">SUGAR <span id="sugar-pct">0%</span></div>
+        </div>
+      </div>
+
+      <div id="motivation" class="mt-10 text-center text-orange-300 text-sm font-bold min-h-[60px]"></div>
+    </div>
+
+    <!-- LOG FOOD PAGE -->
+    <div id="page-log" class="page hidden p-4">
+      <div class="mb-6">
+        <input id="food-search" type="text" placeholder="Search food (chicken, rice...)" 
+               class="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-5 py-4 text-lg focus:outline-none focus:border-orange-400">
+        <button onclick="searchFood()" 
+                class="mt-3 w-full bg-orange-500 hover:bg-orange-600 py-4 rounded-2xl font-bold">🔎 SEARCH OPEN FOOD FACTS</button>
+      </div>
+
+      <div id="search-results" class="space-y-3 mb-8"></div>
+
+      <!-- Quick Presets -->
+      <div class="text-xs uppercase tracking-widest text-zinc-500 mb-3">BRO PRESETS</div>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="addPreset(0)" class="bg-zinc-900 hover:bg-zinc-800 p-4 rounded-2xl text-left">🍗 Chicken Breast (200g)</button>
+        <button onclick="addPreset(1)" class="bg-zinc-900 hover:bg-zinc-800 p-4 rounded-2xl text-left">🍚 White Rice (150g)</button>
+        <button onclick="addPreset(2)" class="bg-zinc-900 hover:bg-zinc-800 p-4 rounded-2xl text-left">🥚 4 Eggs</button>
+        <button onclick="addPreset(3)" class="bg-zinc-900 hover:bg-zinc-800 p-4 rounded-2xl text-left">🥜 Peanut Butter (30g)</button>
+      </div>
+
+      <div class="mt-10">
+        <h3 class="text-lg mb-4">MANUAL ENTRY</h3>
+        <div class="space-y-4">
+          <input id="manual-name" placeholder="Food name" class="w-full bg-zinc-900 px-5 py-4 rounded-2xl">
+          <div class="grid grid-cols-2 gap-4">
+            <input id="manual-cal" type="number" placeholder="Cals" class="bg-zinc-900 px-5 py-4 rounded-2xl">
+            <input id="manual-protein" type="number" placeholder="Protein g" class="bg-zinc-900 px-5 py-4 rounded-2xl">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <input id="manual-carbs" type="number" placeholder="Carbs g" class="bg-zinc-900 px-5 py-4 rounded-2xl">
+            <input id="manual-fats" type="number" placeholder="Fats g" class="bg-zinc-900 px-5 py-4 rounded-2xl">
+          </div>
+          <input id="manual-sugar" type="number" placeholder="Sugar g (optional)" class="w-full bg-zinc-900 px-5 py-4 rounded-2xl">
+          <button onclick="addManualFood()" class="w-full bg-green-500 py-5 rounded-3xl font-bold">ADD TO TODAY'S LOG</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAY'S LOG -->
+    <div class="p-4 border-t border-zinc-800">
+      <div class="flex justify-between text-xs uppercase mb-3">
+        <div>TODAY'S LOG</div>
+        <div onclick="clearTodayLog()" class="text-red-400 cursor-pointer">CLEAR</div>
+      </div>
+      <div id="today-log" class="space-y-3"></div>
+    </div>
+
+    <!-- HISTORY / WEEKLY PAGE -->
+    <div id="page-history" class="page hidden p-4">
+      <canvas id="weekly-chart" class="w-full h-80"></canvas>
+      <div id="streak" class="mt-8 text-center text-3xl font-bold text-orange-400"></div>
+      <button onclick="exportPDF()" 
+              class="mt-6 w-full bg-white text-black py-5 rounded-3xl font-bold">EXPORT WEEK AS PDF 📄</button>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="page-settings" class="page hidden p-4">
+      <h2 class="text-2xl mb-6 text-center">PROFILE & TARGETS</h2>
+      
+      <!-- Onboarding / Profile -->
+      <div class="bg-zinc-900 rounded-3xl p-6 mb-8">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <label class="block text-zinc-400 mb-1">Age</label>
+            <input id="age" type="number" class="w-full bg-black px-4 py-3 rounded-2xl" value="30">
+          </div>
+          <div>
+            <label class="block text-zinc-400 mb-1">Gender</label>
+            <select id="gender" class="w-full bg-black px-4 py-3 rounded-2xl">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-zinc-400 mb-1">Weight (lbs)</label>
+            <input id="weight" type="number" class="w-full bg-black px-4 py-3 rounded-2xl" value="200">
+          </div>
+          <div>
+            <label class="block text-zinc-400 mb-1">Height (inches)</label>
+            <input id="height" type="number" class="w-full bg-black px-4 py-3 rounded-2xl" value="72">
+          </div>
+        </div>
+        <button onclick="recalculateTargets()" 
+                class="mt-6 w-full bg-orange-500 py-4 rounded-2xl font-bold">RECALCULATE TARGETS</button>
+      </div>
+
+      <!-- Manual Overrides -->
+      <div class="space-y-8">
+        <div>
+          <label class="flex justify-between text-sm mb-2"><span>Total Calories</span><span id="cal-val">3000</span></label>
+          <input type="range" id="cal-slider" min="1500" max="4500" value="3000" oninput="updateSliderValue(this)" class="w-full accent-orange-400">
+          <input id="cal-input" type="number" class="w-full bg-zinc-900 px-5 py-3 rounded-2xl mt-2" value="3000">
+        </div>
+        <div>
+          <label class="flex justify-between text-sm mb-2"><span>Protein (g)</span><span id="prot-val">200</span></label>
+          <input type="range" id="prot-slider" min="50" max="400" value="200" oninput="updateSliderValue(this)" class="w-full accent-orange-400">
+          <input id="prot-input" type="number" class="w-full bg-zinc-900 px-5 py-3 rounded-2xl mt-2" value="200">
+        </div>
+        <div>
+          <label class="flex justify-between text-sm mb-2"><span>Carbs (g)</span><span id="carb-val">300</span></label>
+          <input type="range" id="carb-slider" min="50" max="500" value="300" oninput="updateSliderValue(this)" class="w-full accent-blue-400">
+          <input id="carb-input" type="number" class="w-full bg-zinc-900 px-5 py-3 rounded-2xl mt-2" value="300">
+        </div>
+        <div>
+          <label class="flex justify-between text-sm mb-2"><span>Fats (g)</span><span id="fat-val">80</span></label>
+          <input type="range" id="fat-slider" min="20" max="200" value="80" oninput="updateSliderValue(this)" class="w-full accent-yellow-400">
+          <input id="fat-input" type="number" class="w-full bg-zinc-900 px-5 py-3 rounded-2xl mt-2" value="80">
+        </div>
+        <div>
+          <label class="flex justify-between text-sm mb-2"><span>Sugar Limit (g)</span><span id="sugar-val">50</span></label>
+          <input type="range" id="sugar-slider" min="0" max="150" value="50" oninput="updateSliderValue(this)" class="w-full accent-purple-400">
+          <input id="sugar-input" type="number" class="w-full bg-zinc-900 px-5 py-3 rounded-2xl mt-2" value="50">
+        </div>
+      </div>
+
+      <div class="flex gap-4 mt-12">
+        <button onclick="saveOverrides()" class="flex-1 bg-green-500 py-6 rounded-3xl font-bold">SAVE TARGETS</button>
+        <button onclick="resetToAuto()" class="flex-1 bg-zinc-700 py-6 rounded-3xl font-bold">RESET TO AUTO</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ONBOARDING MODAL (first time) -->
+  <div id="onboarding-modal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-[999]">
+    <div class="bg-zinc-900 max-w-md w-full mx-4 rounded-3xl p-8">
+      <h2 class="text-3xl font-bold mb-6 text-center">WELCOME TO MACBROS, BRO</h2>
+      <div id="onboarding-form" class="space-y-6">
+        <!-- same fields as settings -->
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><label class="block text-zinc-400">Age</label><input id="ob-age" type="number" class="w-full bg-black px-4 py-3 rounded-2xl" value="30"></div>
+          <div><label class="block text-zinc-400">Gender</label><select id="ob-gender" class="w-full bg-black px-4 py-3 rounded-2xl"><option value="male">Male</option><option value="female">Female</option></select></div>
+          <div><label class="block text-zinc-400">Weight lbs</label><input id="ob-weight" type="number" class="w-full bg-black px-4 py-3 rounded-2xl" value="200"></div>
+          <div><label class="block text-zinc-400">Height in</label><input id="ob-height" type="number" class="w-full bg-black px-4 py-3 rounded-2xl" value="72"></div>
+        </div>
+        <button onclick="completeOnboarding()" class="w-full bg-orange-500 py-6 rounded-3xl font-bold text-xl">START LIFTING →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ================== CONFIG & DATA ==================
+    let userProfile = JSON.parse(localStorage.getItem('macbros_profile')) || {};
+    let dailyLogs = JSON.parse(localStorage.getItem('macbros_logs')) || {};
+    let overrides = JSON.parse(localStorage.getItem('macbros_overrides')) || null;
+
+    const todayKey = new Date().toISOString().split('T')[0];
+
+    // Tailwind script init
+    function initTailwind() {
+      // already loaded via CDN
+    }
+
+    // ================== BMR & TARGETS ==================
+    function calculateTargets(profile) {
+      const weightKg = profile.weight * 0.453592;
+      const heightCm = profile.height * 2.54;
+      let bmr;
+      if (profile.gender === 'male') {
+        bmr = 10 * weightKg + 6.25 * heightCm - 5 * profile.age + 5;
+      } else {
+        bmr = 10 * weightKg + 6.25 * heightCm - 5 * profile.age - 161;
+      }
+      // Activity multiplier (gym bro default = very active)
+      const tdee = Math.round(bmr * 1.725);
+
+      // Protein high for lifters
+      const protein = Math.round(profile.weight * 1.1);
+
+      // Default splits based on goal (hardcoded for simplicity - bulk/cut toggle later)
+      let carbs, fats, sugarLimit;
+      if (!profile.goal) profile.goal = 'bulk';
+      if (profile.goal === 'bulk') {
+        carbs = Math.round((tdee * 0.50) / 4);
+        fats = Math.round((tdee * 0.25) / 9);
+      } else {
+        carbs = Math.round((tdee * 0.40) / 4);
+        fats = Math.round((tdee * 0.25) / 9);
+      }
+      sugarLimit = 50;
+
+      return {
+        calories: tdee,
+        protein: protein,
+        carbs: carbs,
+        fats: fats,
+        sugar: sugarLimit
+      };
+    }
+
+    function getCurrentTargets() {
+      if (overrides) return overrides;
+      if (!userProfile.weight) return {calories: 2800, protein: 200, carbs: 300, fats: 80, sugar: 50};
+      return calculateTargets(userProfile);
+    }
+
+    // ================== RENDER DASHBOARD ==================
+    function renderDashboard() {
+      const targets = getCurrentTargets();
+      const todayEntries = dailyLogs[todayKey] || [];
+      
+      let consumed = {cal: 0, prot: 0, carb: 0, fat: 0, sug: 0};
+      todayEntries.forEach(f => {
+        consumed.cal += f.cal || 0;
+        consumed.prot += f.protein || 0;
+        consumed.carb += f.carbs || 0;
+        consumed.fat += f.fats || 0;
+        consumed.sug += f.sugar || 0;
+      });
+
+      // Calories
+      document.getElementById('daily-cals').innerHTML = `${consumed.cal} / ${targets.calories}`;
+
+      // Protein ring
+      const protPct = Math.min(Math.round((consumed.prot / targets.protein) * 100), 100);
+      const protCirc = 326.73 * (1 - protPct/100);
+      document.getElementById('protein-progress').setAttribute('stroke-dashoffset', protCirc);
+      document.getElementById('protein-g').textContent = `${consumed.prot}g`;
+      document.getElementById('protein-pct').textContent = `${protPct}%`;
+
+      // Carbs
+      const carbPct = Math.min(Math.round((consumed.carb / targets.carbs) * 100), 100);
+      const carbCirc = 326.73 * (1 - carbPct/100);
+      document.getElementById('carbs-progress').setAttribute('stroke-dashoffset', carbCirc);
+      document.getElementById('carbs-g').textContent = `${consumed.carb}g`;
+      document.getElementById('carbs-pct').textContent = `${carbPct}%`;
+
+      // Fats
+      const fatPct = Math.min(Math.round((consumed.fat / targets.fats) * 100), 100);
+      const fatCirc = 326.73 * (1 - fatPct/100);
+      document.getElementById('fats-progress').setAttribute('stroke-dashoffset', fatCirc);
+      document.getElementById('fats-g').textContent = `${consumed.fat}g`;
+      document.getElementById('fats-pct').textContent = `${fatPct}%`;
+
+      // Sugar
+      const sugPct = Math.min(Math.round((consumed.sug / targets.sugar) * 100), 100);
+      document.getElementById('sugar-g').textContent = `${consumed.sug}g`;
+      document.getElementById('sugar-pct').textContent = `${sugPct}%`;
+
+      // Motivation
+      const mot = [
+        "PROTEIN BEAST MODE 🔥",
+        "CARBS ON POINT, BRO 💪",
+        "FATS UNDER CONTROL 🥑",
+        "SUGAR STAYING CLEAN 🍬",
+        "ONE MORE REP, ONE MORE GRAM"
+      ];
+      document.getElementById('motivation').textContent = mot[Math.floor(Math.random()*mot.length)];
+
+      renderTodayLog();
+    }
+
+    // ================== TODAY'S LOG ==================
+    function renderTodayLog() {
+      const container = document.getElementById('today-log');
+      container.innerHTML = '';
+      const entries = dailyLogs[todayKey] || [];
+      if (entries.length === 0) {
+        container.innerHTML = `<div class="text-center text-zinc-500 py-8">No food logged yet today.<br>Go crush it!</div>`;
+        return;
+      }
+      entries.forEach((food, i) => {
+        const div = document.createElement('div');
+        div.className = "bg-zinc-900 rounded-2xl p-4 flex justify-between items-center";
+        div.innerHTML = `
+          <div>
+            <div class="font-bold">${food.name}</div>
+            <div class="text-xs text-zinc-400">${food.cal} cal • ${food.protein}P ${food.carbs}C ${food.fats}F</div>
+          </div>
+          <div class="flex gap-3">
+            <button onclick="editFood(${i})" class="text-blue-400">✏️</button>
+            <button onclick="deleteFood(${i})" class="text-red-400">🗑️</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function deleteFood(index) {
+      if (!dailyLogs[todayKey]) return;
+      dailyLogs[todayKey].splice(index, 1);
+      localStorage.setItem('macbros_logs', JSON.stringify(dailyLogs));
+      renderDashboard();
+    }
+
+    // ================== FOOD SEARCH & ADD ==================
+    async function searchFood() {
+      const query = document.getElementById('food-search').value.trim();
+      if (!query) return;
+      const resultsDiv = document.getElementById('search-results');
+      resultsDiv.innerHTML = `<div class="text-center text-zinc-400">Searching Open Food Facts...</div>`;
+      
+      try {
+        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=6`);
+        const data = await res.json();
+        resultsDiv.innerHTML = '';
+        if (!data.products || data.products.length === 0) {
+          resultsDiv.innerHTML = `<div class="text-orange-300">No results. Try manual entry below.</div>`;
+          return;
+        }
+        data.products.forEach(p => {
+          const nut = p.nutriments || {};
+          const item = document.createElement('div');
+          item.className = "bg-zinc-900 p-4 rounded-2xl flex justify-between cursor-pointer hover:bg-zinc-800";
+          item.innerHTML = `
+            <div>
+              <div class="font-bold">${p.product_name || 'Unknown'}</div>
+              <div class="text-xs">${Math.round(nut['energy-kcal_100g'] || 0)} cal • ${Math.round(nut.proteins_100g || 0)}P</div>
+            </div>
+            <button onclick="addApiFood(this)" class="text-green-400 text-xl">＋</button>
+          `;
+          item.dataset.food = JSON.stringify({
+            name: p.product_name || 'Food',
+            cal: Math.round(nut['energy-kcal_100g'] || 0),
+            protein: Math.round(nut.proteins_100g || 0),
+            carbs: Math.round(nut.carbohydrates_100g || 0),
+            fats: Math.round(nut.fat_100g || 0),
+            sugar: Math.round(nut.sugars_100g || 0)
+          });
+          resultsDiv.appendChild(item);
+        });
+      } catch(e) {
+        resultsDiv.innerHTML = `<div class="text-red-400">API error - use manual entry</div>`;
+      }
+    }
+
+    function addApiFood(btn) {
+      const foodData = JSON.parse(btn.parentElement.dataset.food);
+      if (!dailyLogs[todayKey]) dailyLogs[todayKey] = [];
+      dailyLogs[todayKey].push(foodData);
+      localStorage.setItem('macbros_logs', JSON.stringify(dailyLogs));
+      document.getElementById('search-results').innerHTML = '';
+      document.getElementById('food-search').value = '';
+      renderDashboard();
+    }
+
+    function addPreset(i) {
+      const presets = [
+        {name: "Chicken Breast 200g", cal: 330, protein: 62, carbs: 0, fats: 7, sugar: 0},
+        {name: "White Rice 150g", cal: 190, protein: 4, carbs: 42, fats: 0, sugar: 0},
+        {name: "4 Whole Eggs", cal: 280, protein: 24, carbs: 2, fats: 20, sugar: 0},
+        {name: "Peanut Butter 30g", cal: 180, protein: 8, carbs: 6, fats: 15, sugar: 3}
+      ];
+      if (!dailyLogs[todayKey]) dailyLogs[todayKey] = [];
+      dailyLogs[todayKey].push(presets[i]);
+      localStorage.setItem('macbros_logs', JSON.stringify(dailyLogs));
+      renderDashboard();
+    }
+
+    function addManualFood() {
+      const name = document.getElementById('manual-name').value || "Custom Food";
+      const food = {
+        name: name,
+        cal: parseInt(document.getElementById('manual-cal').value) || 0,
+        protein: parseInt(document.getElementById('manual-protein').value) || 0,
+        carbs: parseInt(document.getElementById('manual-carbs').value) || 0,
+        fats: parseInt(document.getElementById('manual-fats').value) || 0,
+        sugar: parseInt(document.getElementById('manual-sugar').value) || 0
+      };
+      if (!dailyLogs[todayKey]) dailyLogs[todayKey] = [];
+      dailyLogs[todayKey].push(food);
+      localStorage.setItem('macbros_logs', JSON.stringify(dailyLogs));
+      // clear form
+      document.getElementById('manual-name').value = '';
+      document.getElementById('manual-cal').value = '';
+      document.getElementById('manual-protein').value = '';
+      document.getElementById('manual-carbs').value = '';
+      document.getElementById('manual-fats').value = '';
+      document.getElementById('manual-sugar').value = '';
+      renderDashboard();
+    }
+
+    // ================== WEEKLY CHART & STREAK ==================
+    let weeklyChartInstance = null;
+    function renderHistory() {
+      const canvas = document.getElementById('weekly-chart');
+      const labels = [];
+      const cals = [];
+      let streakCount = 0;
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        labels.push(d.toLocaleDateString('en-US', {weekday: 'short'}));
+        
+        const dayLog = dailyLogs[key] || [];
+        let dayCal = 0;
+        dayLog.forEach(f => dayCal += f.cal || 0);
+        cals.push(dayCal);
+
+        const targets = getCurrentTargets();
+        if (dayCal >= targets.calories * 0.9) streakCount++;
+      }
+
+      if (weeklyChartInstance) weeklyChartInstance.destroy();
+      weeklyChartInstance = new Chart(canvas, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: 'Calories', data: cals, backgroundColor: '#f97316' }] },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+
+      document.getElementById('streak').innerHTML = `PROTEIN STREAK: ${streakCount} DAYS 💪`;
+    }
+
+    function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont("helvetica", "bold");
+      doc.text("MacBros Weekly Summary", 20, 20);
+      doc.text(`Week ending: ${new Date().toDateString()}`, 20, 30);
+      // add more data if wanted
+      doc.text("Keep crushing it, bro!", 20, 50);
+      doc.save('MacBros_Week.pdf');
+    }
+
+    // ================== SETTINGS & OVERRIDES ==================
+    function updateSliderValue(slider) {
+      const id = slider.id.replace('-slider', '-val');
+      document.getElementById(id).textContent = slider.value;
+      document.getElementById(slider.id.replace('-slider', '-input')).value = slider.value;
+    }
+
+    function saveOverrides() {
+      overrides = {
+        calories: parseInt(document.getElementById('cal-input').value),
+        protein: parseInt(document.getElementById('prot-input').value),
+        carbs: parseInt(document.getElementById('carb-input').value),
+        fats: parseInt(document.getElementById('fat-input').value),
+        sugar: parseInt(document.getElementById('sugar-input').value)
+      };
+      localStorage.setItem('macbros_overrides', JSON.stringify(overrides));
+      alert("✅ Targets saved! Dashboard updated.");
+      renderDashboard();
+    }
+
+    function resetToAuto() {
+      overrides = null;
+      localStorage.removeItem('macbros_overrides');
+      alert("Reset to auto-calculated values 🔥");
+      renderDashboard();
+    }
+
+    function recalculateTargets() {
+      userProfile.age = parseInt(document.getElementById('age').value) || 30;
+      userProfile.gender = document.getElementById('gender').value;
+      userProfile.weight = parseInt(document.getElementById('weight').value) || 200;
+      userProfile.height = parseInt(document.getElementById('height').value) || 72;
+      localStorage.setItem('macbros_profile', JSON.stringify(userProfile));
+      overrides = null;
+      localStorage.removeItem('macbros_overrides');
+      renderDashboard();
+    }
+
+    // ================== PAGE SWITCHING ==================
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`page-${page}`).classList.remove('hidden');
+      
+      // highlight nav
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('border-b-4', 'border-orange-500', 'text-orange-400'));
+      if (page === 'dashboard') document.getElementById('nav-dash').classList.add('border-b-4', 'border-orange-500', 'text-orange-400');
+      if (page === 'log') document.getElementById('nav-log').classList.add('border-b-4', 'border-orange-500', 'text-orange-400');
+      if (page === 'history') {
+        document.getElementById('nav-history').classList.add('border-b-4', 'border-orange-500', 'text-orange-400');
+        renderHistory();
+      }
+    }
+
+    // ================== ONBOARDING ==================
+    function showOnboarding() {
+      document.getElementById('onboarding-modal').classList.remove('hidden');
+    }
+
+    function completeOnboarding() {
+      userProfile = {
+        age: parseInt(document.getElementById('ob-age').value) || 30,
+        gender: document.getElementById('ob-gender').value,
+        weight: parseInt(document.getElementById('ob-weight').value) || 200,
+        height: parseInt(document.getElementById('ob-height').value) || 72,
+        goal: 'bulk'
+      };
+      localStorage.setItem('macbros_profile', JSON.stringify(userProfile));
+      document.getElementById('onboarding-modal').classList.add('hidden');
+      renderDashboard();
+    }
+
+    // Clear today (for testing)
+    function clearTodayLog() {
+      if (confirm("Clear today's log?")) {
+        dailyLogs[todayKey] = [];
+        localStorage.setItem('macbros_logs', JSON.stringify(dailyLogs));
+        renderDashboard();
+      }
+    }
+
+    // ================== INIT ==================
+    function initApp() {
+      initTailwind();
+      
+      // Load sliders
+      const sliders = ['cal', 'prot', 'carb', 'fat', 'sugar'];
+      sliders.forEach(s => {
+        const input = document.getElementById(s + '-input');
+        const slider = document.getElementById(s + '-slider');
+        if (input && slider) {
+          input.oninput = () => { slider.value = input.value; document.getElementById(s + '-val').textContent = input.value; };
+        }
+      });
+
+      // Check if first time
+      if (!userProfile.weight) {
+        showOnboarding();
+      } else {
+        // load overrides into sliders
+        const t = getCurrentTargets();
+        document.getElementById('cal-input').value = t.calories;
+        document.getElementById('cal-slider').value = t.calories;
+        document.getElementById('prot-input').value = t.protein;
+        document.getElementById('prot-slider').value = t.protein;
+        document.getElementById('carb-input').value = t.carbs;
+        document.getElementById('carb-slider').value = t.carbs;
+        document.getElementById('fat-input').value = t.fats;
+        document.getElementById('fat-slider').value = t.fats;
+        document.getElementById('sugar-input').value = t.sugar;
+        document.getElementById('sugar-slider').value = t.sugar;
+      }
+
+      showPage('dashboard');
+      renderDashboard();
+      
+      // Keyboard shortcut for demo
+      console.log('%cMacBros ready! Paste this single index.html into your GitHub repo → enable Pages. Live in 60 seconds.', 'color:orange; font-size:14px');
+    }
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>
